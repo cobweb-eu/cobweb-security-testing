@@ -9,6 +9,8 @@ def performRequest(url):
     buffer = StringIO()
     c = pycurl.Curl()
     c.setopt(c.URL, url)
+    c.setopt(pycurl.SSL_VERIFYPEER, 0)
+    c.setopt(pycurl.SSL_VERIFYHOST, 0)
     c.setopt(c.WRITEDATA, buffer)
     c.setopt(pycurl.HTTPHEADER, ['uuid: Joe'])
     c.perform()
@@ -20,6 +22,8 @@ def performPostRequest(payload):
     c = pycurl.Curl()
     c.setopt(c.URL, WFS_POST_URL)
     c.setopt(c.POSTFIELDS, payload)
+    c.setopt(pycurl.SSL_VERIFYPEER, 0)
+    c.setopt(pycurl.SSL_VERIFYHOST, 0)
     c.setopt(pycurl.HTTPHEADER, ['Content-type: text/xml', 'uuid: Joe'])
     c.setopt(c.WRITEDATA, buffer)
     c.perform()
@@ -155,7 +159,6 @@ class TestPostFeature(unittest.TestCase):
         desiredResult = '<wfs:GetFeature xmlns:wfs="http://www.opengis.net/wfs" xmlns:ogc="http://www.opengis.net/ogc" xmlns:myns="http://www.example.com/myns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" service="WFS" version="1.0.0" xsi:schemaLocation="http://www.opengis.net/wfs ../wfs/1.0.0/WFS-basic.xsd">    <wfs:Query typeName="A"><fes:Filter xmlns:fes="http://www.opengis.net/ogc"><fes:PropertyIsEqualTo><fes:PropertyName>userid</fes:PropertyName><fes:Literal>Joe</fes:Literal></fes:PropertyIsEqualTo></fes:Filter></wfs:Query>    <wfs:Query typeName="B">     <ogc:Filter><And><fes:PropertyIsEqualTo xmlns:fes="http://www.opengis.net/ogc"><fes:PropertyName>userid</fes:PropertyName><fes:Literal>Joe</fes:Literal></fes:PropertyIsEqualTo><ogc:F1 xmlns:ogc="http://www.opengis.net/ogc"/></And></ogc:Filter>    </wfs:Query>    <wfs:Query typeName="C">     <ogc:Filter><ogc:And><ogc:F2/><ogc:F3/><fes:PropertyIsEqualTo xmlns:fes="http://www.opengis.net/ogc"><fes:PropertyName>userid</fes:PropertyName><fes:Literal>Joe</fes:Literal></fes:PropertyIsEqualTo></ogc:And></ogc:Filter>    </wfs:Query>    <wfs:Query typeName="D"><fes:Filter xmlns:fes="http://www.opengis.net/ogc"><fes:PropertyIsEqualTo><fes:PropertyName>userid</fes:PropertyName><fes:Literal>Joe</fes:Literal></fes:PropertyIsEqualTo></fes:Filter></wfs:Query> </wfs:GetFeature>'
         requestXml = '<wfs:GetFeature   service="WFS"   version="1.1.0"   xmlns:wfs="http://www.opengis.net/wfs"   xmlns:ogc="http://www.opengis.net/ogc"   xmlns:myns="http://www.example.com/myns"   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"   xsi:schemaLocation="http://www.opengis.net/wfs ../wfs/1.1.0/WFS-basic.xsd">   <wfs:Query typeName="A"/>   <wfs:Query typeName="B">    <ogc:Filter><ogc:F1/></ogc:Filter>   </wfs:Query>   <wfs:Query typeName="C">    <ogc:Filter><ogc:And><ogc:F2/><ogc:F3/></ogc:And></ogc:Filter>   </wfs:Query>   <wfs:Query typeName="D"/></wfs:GetFeature>'
         result = performPostRequest(requestXml)
-        print(result)
         self.assertEqual(result, desiredResult)
         
 if __name__ == '__main__':
