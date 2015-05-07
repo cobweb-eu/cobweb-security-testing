@@ -20,6 +20,8 @@ FILTER_ATTR = "cobweb:pos_acc"
 FILTER_VAL = "-1.0"
 
 
+# The following is a group of convenience functions
+# to make request handling simpler
 
 """ Convenience function to perform a GET request constructing a filter and
     returning a parsed dom object
@@ -28,7 +30,6 @@ def _performFilterRequestParseResponse(filterAttr, filterVal, surveys, user):
     filterString = _makeEqualFilter(filterAttr, filterVal)
     request = 'typeName=%s&%s'%(','.join(surveys),filterString)
     return _performDOMGetRequest(request, user)
-
     
 """ Convenience function to perform a GET request and return a DOM
     Parameters are the url to GET and the uuid to use in the header
@@ -66,7 +67,9 @@ def _performPostRequest(payload):
     c.perform()
     c.close()
     return buffer.getvalue()
-    
+
+""" Convenience function to print which environment is tested on
+"""
 def _printLiveOrDev():
     import socket
     address = socket.gethostbyname_ex('dyfi.cobwebproject.eu')
@@ -75,7 +78,10 @@ def _printLiveOrDev():
         print("Testing on DEV!")
     else:
         print("Testing on LIVE!")
-        
+
+""" Convenience function to return a list uuids from a
+    feature collection, one from each observation
+"""
 def _getUserIDsFromFeatures(self, wfsFeatureCollectionDom):
         return (x.firstChild.nodeValue for x in
                 wfsFeatureCollectionDom.getElementsByTagName('cobweb:userid'))
@@ -88,6 +94,7 @@ def _makeEqualFilter(param, value):
             <Literal>%s</Literal></PropertyIsEqualTo></Filter>'%(param, value)
 
 
+# Now come the main test classes
 
 """ TestSimpleGetFeature tests that simple filterless
     WFS GetFeature requests (HTTP GET) are rewritten correctly
@@ -144,15 +151,13 @@ class TestFilteredGetFeature(unittest.TestCase):
     """
     def test_single_type_name_filter(self):
         result = _performFilterRequestParseResponse(FILTER_ATTR, '1.0',
-                                                    [SURVEY1], USER1)
-        
+                                                    [SURVEY1], USER1)  
         # should not contain observation
         self.assertEqual(len(_getUserIDsFromFeatures(result)), 0)
         
         # do the test with correct filter
         result = _performFilterRequestParseResponse(FILTER_ATTR, FILTER_VAL,
                                                     [SURVEY1], USER1)
-        
         # should contain some observations
         userIDs = _getUserIDsFromFeatures(result)
         self.assertGreater(len(userIDs), 0)
@@ -165,14 +170,12 @@ class TestFilteredGetFeature(unittest.TestCase):
     def test_multiple_name_filter(self):
         result = _performFilterRequestParseResponse(FILTER_ATTR, '1.0',
                                                     [SURVEY1,SURVEY2], USER1)
-        
         # should not contain observation
         self.assertEqual(len(_getUserIDsFromFeatures(result)), 0)
         
         # do the test with correct filter
         result = _performFilterRequestParseResponse(FILTER_ATTR, FILTER_VAL,
                                                     [SURVEY1,SURVEY2], USER1)
-        
         # should contain some observations
         userIDs = _getUserIDsFromFeatures(result)
         self.assertGreater(len(userIDs), 0)
@@ -180,25 +183,11 @@ class TestFilteredGetFeature(unittest.TestCase):
         # should only be those belonging to USER1
         for uuid in userIDs:
             self.assertEqual(uuid, USER1)
-            
+         
         # should be across both surveys
         self.assertGreater(len(result.getElementsByTagName(SURVEY1)), 0)
         self.assertGreater(len(result.getElementsByTagName(SURVEY2)), 0)
         
-        
-        desiredResult = 'request=GetFeature;service=WFS;version=1.1.0;typeName=' \
-                        'A,B;FILTER=(<Filter><And><fes:PropertyIsEqualTo xmlns:' \
-                        'fes="http://www.opengis.net/ogc"><fes:PropertyName>use' \
-                        'rid</fes:PropertyName><fes:Literal>Joe</fes:Literal></' \
-                        'fes:PropertyIsEqualTo><F1/></And></Filter>),(<Filter><' \
-                        'And><fes:PropertyIsEqualTo xmlns:fes="http://www.openg' \
-                        'is.net/ogc"><fes:PropertyName>userid</fes:PropertyName' \
-                        '><fes:Literal>Joe</fes:Literal></fes:PropertyIsEqualTo' \
-                        '><F2/></And></Filter>)'
-        result = performRequest(WFS_URL + "typeName=A,B&filter=(<Filter><F1/></" \
-                                "Filter>),(<Filter><F2/></Filter>)")
-        self.assertEqual(result, desiredResult)
-
         
 class TestBoundedGetFeature(unittest.TestCase):
     
