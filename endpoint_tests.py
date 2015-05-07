@@ -19,11 +19,22 @@ SURVEY2 = "cobweb:sid-UUID"
 FILTER_ATTR = "cobweb:pos_acc"
 FILTER_VAL = "-1.0"
 
+
+
+""" Convenience function to perform a GET request constructing a filter and
+    returning a parsed dom object
+"""
+def _performFilterRequestParseResponse(filterAttr, filterVal, survey, user):
+    filterString = _makeEqualFilter(filterAttr, filterVal)
+    request = 'typeName=%s&%s'%(survey,filterString)
+    return _performDOMGetRequest(request, user)
+
+    
 """ Convenience function to perform a GET request and return a DOM
     Parameters are the url to GET and the uuid to use in the header
 """
 def _performDOMGetRequest(url, uuid):
-    return parseString(_performRequest(url, uuid))
+    return parseString(_performRequest(''.join(WFS_URL, url), uuid))
 
 """ Convenience function to perform a GET
     WFS request.
@@ -95,7 +106,7 @@ class TestSimpleGetFeature(unittest.TestCase):
     def testSingleTypeName(self):
         # Make a valid request simple request, check filter is applied
         request = "typeName=%s"%SURVEY1
-        result = _performDOMGetRequest(''.join(WFS_URL, request), USER1)
+        result = _performDOMGetRequest(request, USER1)
         
         # check that the result contains results for this UUID only
         userIDs = _getUserIDsFromFeatures(result)
@@ -108,7 +119,7 @@ class TestSimpleGetFeature(unittest.TestCase):
     def testMultipleTypeNames(self):
         # Make a valid request with two surveys
         request = "typeName=%s,%s"%(SURVEY1,SURVEY2)
-        result = _performDOMGetRequest(''.join(WFS_URL, request), USER2)
+        result = _performDOMGetRequest(request, USER2)
         
         # Make sure we only see our observations
         userIDs = _getUserIDsFromFeatures(result)
@@ -132,17 +143,15 @@ class TestFilteredGetFeature(unittest.TestCase):
         value set should also exist.
     """
     def test_single_type_name_filter(self):
-        filterString = _makeEqualFilter(FILTER_ATTR, '1.0')
-        result = _performDOMGetRequest(''.join(WFS_URL,
-                                'typeName=%s&%s'%(SURVEY1,filterString)), USER1)
+        result = _performFilterRequestParseResponse(FILTER_ATTR, '1.0',
+                                                    SURVEY1, USER1)
         
         # should not contain observation
         self.assertEqual(len(_getUserIDsFromFeatures(result)), 0)
         
         # do the test with correct filter
-        filterString = _makeEqualFilter(FILTER_ATTR, FILTER_VAL)
-        result = _performDOMGetRequest(''.join(WFS_URL,
-                                'typeName=%s&%s'%(SURVEY1,filterString)), USER1)
+        result = _performFilterRequestParseResponse(FILTER_ATTR, FILTER_VAL,
+                                                    SURVEY1, USER1)
         
         # should contain some observations
         userIDs = _getUserIDsFromFeatures(result)
@@ -153,8 +162,10 @@ class TestFilteredGetFeature(unittest.TestCase):
             self.assertEqual(uuid, USER1)
     
         
-        
     def test_multiple_name_filter(self):
+        
+        
+        
         desiredResult = 'request=GetFeature;service=WFS;version=1.1.0;typeName=' \
                         'A,B;FILTER=(<Filter><And><fes:PropertyIsEqualTo xmlns:' \
                         'fes="http://www.opengis.net/ogc"><fes:PropertyName>use' \
