@@ -24,9 +24,9 @@ FILTER_VAL = "-1.0"
 """ Convenience function to perform a GET request constructing a filter and
     returning a parsed dom object
 """
-def _performFilterRequestParseResponse(filterAttr, filterVal, survey, user):
+def _performFilterRequestParseResponse(filterAttr, filterVal, surveys, user):
     filterString = _makeEqualFilter(filterAttr, filterVal)
-    request = 'typeName=%s&%s'%(survey,filterString)
+    request = 'typeName=%s&%s'%(','.join(surveys),filterString)
     return _performDOMGetRequest(request, user)
 
     
@@ -144,14 +144,14 @@ class TestFilteredGetFeature(unittest.TestCase):
     """
     def test_single_type_name_filter(self):
         result = _performFilterRequestParseResponse(FILTER_ATTR, '1.0',
-                                                    SURVEY1, USER1)
+                                                    [SURVEY1], USER1)
         
         # should not contain observation
         self.assertEqual(len(_getUserIDsFromFeatures(result)), 0)
         
         # do the test with correct filter
         result = _performFilterRequestParseResponse(FILTER_ATTR, FILTER_VAL,
-                                                    SURVEY1, USER1)
+                                                    [SURVEY1], USER1)
         
         # should contain some observations
         userIDs = _getUserIDsFromFeatures(result)
@@ -163,7 +163,27 @@ class TestFilteredGetFeature(unittest.TestCase):
     
         
     def test_multiple_name_filter(self):
+        result = _performFilterRequestParseResponse(FILTER_ATTR, '1.0',
+                                                    [SURVEY1,SURVEY2], USER1)
         
+        # should not contain observation
+        self.assertEqual(len(_getUserIDsFromFeatures(result)), 0)
+        
+        # do the test with correct filter
+        result = _performFilterRequestParseResponse(FILTER_ATTR, FILTER_VAL,
+                                                    [SURVEY1,SURVEY2], USER1)
+        
+        # should contain some observations
+        userIDs = _getUserIDsFromFeatures(result)
+        self.assertGreater(len(userIDs), 0)
+        
+        # should only be those belonging to USER1
+        for uuid in userIDs:
+            self.assertEqual(uuid, USER1)
+            
+        # should be across both surveys
+        self.assertGreater(len(result.getElementsByTagName(SURVEY1)), 0)
+        self.assertGreater(len(result.getElementsByTagName(SURVEY2)), 0)
         
         
         desiredResult = 'request=GetFeature;service=WFS;version=1.1.0;typeName=' \
