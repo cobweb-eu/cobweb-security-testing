@@ -18,6 +18,7 @@ SURVEY1 = "cobweb:sid-UUID"
 SURVEY2 = "cobweb:sid-UUID"
 FILTER_ATTR = "cobweb:pos_acc"
 FILTER_VAL = "-1.0"
+BBOX_CONTAINS_OBS = (50,-5,55,0)
 
 
 # The following is a group of convenience functions
@@ -28,7 +29,12 @@ FILTER_VAL = "-1.0"
 """
 def _performFilterRequestParseResponse(filterAttr, filterVal, surveys, user):
     filterString = _makeEqualFilter(filterAttr, filterVal)
-    request = 'typeName=%s&%s'%(','.join(surveys),filterString)
+    request = 'typeName=%s&%s'%(','.join(surveys), filterString)
+    return _performDOMGetRequest(request, user)
+
+def _performBBoxRequestParseResponse(left, lower, right, upper, surveys, user):
+    bboxString = ','.join(str(x) for x in [left, lower, right, upper])
+    request = 'typeName=%s&%s'%(','.join(surveys), bboxString)
     return _performDOMGetRequest(request, user)
     
 """ Convenience function to perform a GET request and return a DOM
@@ -188,10 +194,17 @@ class TestFilteredGetFeature(unittest.TestCase):
         self.assertGreater(len(result.getElementsByTagName(SURVEY1)), 0)
         self.assertGreater(len(result.getElementsByTagName(SURVEY2)), 0)
         
-        
+
+""" Tests the rewriting of WFS requests that use a bounding box parameter
+"""
 class TestBoundedGetFeature(unittest.TestCase):
     
+    """ Tests the rewriting with a bounding box and a single survey
+    """
     def test_single_type_name(self):
+        
+        
+        
         desiredResult = 'request=GetFeature;service=WFS;version=1.1.0;typeName=' \
                         'A;FILTER=(<fes:Filter xmlns:fes="http://www.opengis.ne' \
                         't/ogc"><fes:And xmlns:fes="http://www.opengis.net/ogc"' \
