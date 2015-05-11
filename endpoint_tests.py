@@ -19,6 +19,7 @@ SURVEY2 = "cobweb:sid-UUID"
 FILTER_ATTR = "cobweb:pos_acc"
 FILTER_VAL = "-1.0"
 BBOX_CONTAINS_OBS = (50,-5,55,0)
+BBOX_NO_CONTAIN_OBS = (1, 2, 2, 3)
 
 
 # The following is a group of convenience functions
@@ -202,47 +203,36 @@ class TestBoundedGetFeature(unittest.TestCase):
     """ Tests the rewriting with a bounding box and a single survey
     """
     def test_single_type_name(self):
+        u, l, b, r = BBOX_CONTAINS_OBS 
+        result = _performBBoxRequestParseResponse(u, l, b, r, [SURVEY1], USER1)
         
+        # assert that we have observations returned, only for user1
+        userIDs = _getUserIDsFromFeatures(result)
+        self.assertGreater(len(userIDs), 0)
+        for user in userIDs:
+            self.assertEqual(user, USER1)
         
-        
-        desiredResult = 'request=GetFeature;service=WFS;version=1.1.0;typeName=' \
-                        'A;FILTER=(<fes:Filter xmlns:fes="http://www.opengis.ne' \
-                        't/ogc"><fes:And xmlns:fes="http://www.opengis.net/ogc"' \
-                        '><fes:BBOX xmlns:fes="http://www.opengis.net/ogc"><gml' \
-                        ':Envelope xmlns:gml="http://www.opengis.net/gml" srsNa' \
-                        'me="EPSG:4326"><gml:lowerCorner>0 1</gml:lowerCorner><' \
-                        'gml:upperCorner>2 3</gml:upperCorner></gml:Envelope></' \
-                        'fes:BBOX><fes:PropertyIsEqualTo xmlns:fes="http://www.' \
-                        'opengis.net/ogc"><fes:PropertyName>userid</fes:Propert' \
-                        'yName><fes:Literal>Joe</fes:Literal></fes:PropertyIsEq' \
-                        'ualTo></fes:And></fes:Filter>)'
-        result = performRequest(WFS_URL + "typeName=A&bbox=0,1,2,3")
-        self.assertEqual(result, desiredResult)
+        # request with bbox containing no observations, should contain none
+        u, l, b, r = BBOX_NO_CONTAIN_OBS
+        result = _performBBoxRequestParseResponse(u, l, b, r, [SURVEY1], USER1)
+        self.assertEqual(len(_getUserIDsFromFeatures(result)), 0)
         
     def test_multiple_type_name(self):
-        desiredResult = 'request=GetFeature;service=WFS;version=1.1.0;typeName=' \
-                        'A,B;FILTER=(<fes:Filter xmlns:fes="http://www.opengis.' \
-                        'net/ogc"><fes:And xmlns:fes="http://www.opengis.net/og' \
-                        'c"><fes:BBOX xmlns:fes="http://www.opengis.net/ogc"><g' \
-                        'ml:Envelope xmlns:gml="http://www.opengis.net/gml" srs' \
-                        'Name="EPSG:4326"><gml:lowerCorner>0 1</gml:lowerCorner' \
-                        '><gml:upperCorner>2 3</gml:upperCorner></gml:Envelope>' \
-                        '</fes:BBOX><fes:PropertyIsEqualTo xmlns:fes="http://ww' \
-                        'w.opengis.net/ogc"><fes:PropertyName>userid</fes:Prope' \
-                        'rtyName><fes:Literal>Joe</fes:Literal></fes:PropertyIs' \
-                        'EqualTo></fes:And></fes:Filter>),(<fes:Filter xmlns:fe' \
-                        's="http://www.opengis.net/ogc"><fes:And xmlns:fes="htt' \
-                        'p://www.opengis.net/ogc"><fes:BBOX xmlns:fes="http://w' \
-                        'ww.opengis.net/ogc"><gml:Envelope xmlns:gml="http://ww' \
-                        'w.opengis.net/gml" srsName="EPSG:4326"><gml:lowerCorne' \
-                        'r>0 1</gml:lowerCorner><gml:upperCorner>2 3</gml:upper' \
-                        'Corner></gml:Envelope></fes:BBOX><fes:PropertyIsEqualT' \
-                        'o xmlns:fes="http://www.opengis.net/ogc"><fes:Property' \
-                        'Name>userid</fes:PropertyName><fes:Literal>Joe</fes:Li' \
-                        'teral></fes:PropertyIsEqualTo></fes:And></fes:Filter>)'
-        result = performRequest(WFS_URL + "typeName=A,B&bbox=0,1,2,3")
-        self.assertEqual(result, desiredResult)
-
+        u, l, b, r = BBOX_CONTAINS_OBS
+        result = _performBBoxRequestParseResponse(u, l, b, r,
+                                                  [SURVEY1,SURVEY2], USER1)
+        # should contain at least one observation from each survey, only USER1
+        self.assertGreater(len(result.getElementsByTagName(SURVEY1)), 0)
+        self.assertGreater(len(result.getElementsByTagName(SURVEY2)), 0)
+        for user in _getUserIDsFromFeatures(result):
+            self.assertEqual(user, USER1)
+        
+        # request with bbox containing no observations, should contain none 
+        u, l, b, r = BBOX_NO_CONTAIN_OBS
+        result = _performBBoxRequestParseResponse(u, l, b, r,
+                                                  [SURVEY1,SURVEY2], USER1)
+        self.assertEqual(len(_getUserIDsFromFeatures(result)), 0)
+        
 
 class TestFeatureIDGetFeature(unittest.TestCase):
     

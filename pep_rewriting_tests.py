@@ -5,6 +5,12 @@ from StringIO import StringIO
 WFS_POST_URL = "https://dyfi.cobwebproject.eu/test/service/wfs"
 WFS_URL = "https://dyfi.cobwebproject.eu/test/service/wfs?request=GetFeature&service=WFS&version=1.1.0&"
 
+USER_UUID = "040522c4-e3d6-0ec7-0124-dc64602b9346"
+SURVEY_1 = "cobweb:sid-78cd6e23-583a-4ba7-ac52-9c56e492d59c"
+SURVEY_2 = "cobweb:sid-f629c133-d4af-45ce-9e8b-97545abd61cc"
+
+GEOSERVER_WFS_URL = "http://localhost:8020/geoserver/cobweb/wfs?"
+
 def performRequest(url):
     buffer = StringIO()
     c = pycurl.Curl()
@@ -12,7 +18,7 @@ def performRequest(url):
     c.setopt(pycurl.SSL_VERIFYPEER, 0)
     c.setopt(pycurl.SSL_VERIFYHOST, 0)
     c.setopt(c.WRITEDATA, buffer)
-    c.setopt(pycurl.HTTPHEADER, ['uuid: Joe'])
+    c.setopt(pycurl.HTTPHEADER, ['uuid: %s'%USER_UUID])
     c.perform()
     c.close()
     return buffer.getvalue()
@@ -24,7 +30,7 @@ def performPostRequest(payload):
     c.setopt(c.POSTFIELDS, payload)
     c.setopt(pycurl.SSL_VERIFYPEER, 0)
     c.setopt(pycurl.SSL_VERIFYHOST, 0)
-    c.setopt(pycurl.HTTPHEADER, ['Content-type: text/xml', 'uuid: Joe'])
+    c.setopt(pycurl.HTTPHEADER, ['Content-type: text/xml', 'uuid: %s'%USER_UUID])
     c.setopt(c.WRITEDATA, buffer)
     c.perform()
     c.close()
@@ -48,7 +54,7 @@ class TestSimpleGetFeature(unittest.TestCase):
                         'fes:PropertyName><fes:Literal>Joe</fes:Literal></fes:Pro' \
                         'pertyIsEqualTo></fes:Filter>)'
         result = performRequest(WFS_URL + "typeName=A")
-        self.assertEqual(result, desiredResult)
+        self.assertEqual(result, desiredResult)   
 
     def test_multiple_type_names(self):
         desiredResult = 'request=GetFeature;service=WFS;version=1.1.0;typeName=A,B' \
